@@ -20,8 +20,8 @@ contract LevelNFT is ERC721, Ownable {
     // This allows a previous owner of a token ID to resume if they get the token back.
     mapping (bytes32 => mapping (uint256 => bool)) public levelsBeatenByTokenKey;
 
-    // The current score of each token ID, based on the current owner and how many levels they've beaten with it.
-    mapping (uint256 => uint256) public scoreByTokenId;
+    // The current score of each key, how many levels a token ID and owner pair has beaten.
+    mapping (bytes32 => uint256) public scoreByKey;
 
     constructor() ERC721("LevelNFT", "LNFT") {
         latestLevel = 1;
@@ -30,6 +30,10 @@ contract LevelNFT is ERC721, Ownable {
     // Generate a unique key based on tokenId + owner address.
     function getKey(uint256 tokenId, address owner) internal pure returns(bytes32) {
         return keccak256(abi.encodePacked(tokenId, owner));
+    }
+
+    function getScore(uint256 tokenId) internal view returns (uint256) {
+        return scoreByKey[getKey(tokenId, ownerOf[tokenId])];
     }
 
     // Allows the owner of the contract to add new levels.
@@ -62,61 +66,16 @@ contract LevelNFT is ERC721, Ownable {
             levelsBeatenByTokenKey[key][level] = true;
             
             // Increase this token's score.
-            scoreByTokenId[tokenId] += levelValues[level];
+            scoreByKey[getKey(tokenId, ownerOf[tokenId])] += levelValues[level];
             return true;
         }
         return false;
     }
 
-    // Override to update the token's score when transferring to another user.
-    // TODO: Mint a souvenir token for the from address to remind them of their old save file.
-    function transferFrom(
-        address from,
-        address to,
-        uint256 id
-    ) public override {
-        require(from == ownerOf[id], "WRONG_FROM");
-        require(to != address(0), "INVALID_RECIPIENT");
-
-        require(
-            msg.sender == from || msg.sender == getApproved[id] || isApprovedForAll[from][msg.sender],
-            "NOT_AUTHORIZED"
-        );
-
-        // Underflow of the sender's balance is impossible because we check for
-        // ownership above and the recipient's balance can't realistically overflow.
-        unchecked {
-            balanceOf[from]--;
-
-            balanceOf[to]++;
-        }
-
-        delete getApproved[id];
-
-        ownerOf[id] = to;
-
-        // When transferring, reset score based on the new owner's previous progress (gas expensive but whatever).
-        // Don't need to reset levels because it's also keyed by the owner address.
-        resumePreviousHighScore(id);
-
-        emit Transfer(from, to, id);
-    }
-
-    // Resets a token's score based on its new owner, and their prior progress.
-    // Mapping will still hold all their previous progress bc it's keyed by tokenId + address.
-    function resumePreviousHighScore(uint256 tokenId) internal {
-        scoreByTokenId[tokenId] = 0;
-        for (uint256 i = 0; i <= latestLevel; i++) {
-            if (hasTokenIdBeatenLevel(tokenId, i)) {
-                scoreByTokenId[tokenId] += levelValues[i];
-            }
-        }
-    }
-
     function generateSVG(uint256 tokenId) internal view returns (bytes memory svg) {
         svg = abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">"',
-            scoreByTokenId[tokenId],
+            scoreByKey[getKey(tokenId, ownerOf[tokenId])],
             '"</text></svg>'
         );
     }
@@ -134,7 +93,7 @@ contract LevelNFT is ERC721, Ownable {
                                 Base64.encode(bytes(generateSVG(tokenId))),
                                 '", "description": "NFT that can beat levels.",',
                                 '"score": "',
-                                scoreByTokenId[tokenId],
+                                scoreByKey[getKey(tokenId, ownerOf[tokenId])],
                                 '"}'
                             )
                         )
