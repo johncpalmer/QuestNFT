@@ -5,7 +5,7 @@ import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "base64/base64.sol";
 
-contract LevelingNFT is ERC721, Ownable {
+contract LevelNFT is ERC721, Ownable {
     // Level numbers auto-increment as they are added by the contract owner.
     uint latestLevel;
 
