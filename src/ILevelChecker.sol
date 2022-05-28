@@ -3,7 +3,8 @@ pragma solidity ^0.8.13;
 
 // Interface for a new level, which can be beaten to increase score.
 interface ILevelChecker {
-    // `data` is any arbitrary bytes12 data needed by the gatekeeper implementation.
+
+    // Implements logic to tell if this participant has beaten this level.
     function isCompleted(
         // address of user
         address participant,
