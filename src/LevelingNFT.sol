@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 import "./ILevelChecker.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
+import "base64/base64.sol";
 
 contract LevelingNFT is ERC721, Ownable {
     uint latestLevel;
@@ -23,9 +24,9 @@ contract LevelingNFT is ERC721, Ownable {
         latestLevel++;
     }
 
-    function hasTokenIdBeatenLevel(uint256 tokenId, uint level) public pure returns(bool) {
+    function hasTokenIdBeatenLevel(uint256 tokenId, uint level) public view returns(bool) {
         uint key = getKey(tokenId, ownerOf[tokenId]);
-        return levelsBeatenByTokenKey(key);
+        return levelsBeatenByTokenKey[key][level];
     }
     
     function beatLevel(uint level, uint256 tokenId, bytes memory userData) public returns(bool) {
@@ -90,7 +91,7 @@ contract LevelingNFT is ERC721, Ownable {
         scoreByTokenId[tokenId] = 0;
         for (uint i = 0; i <= latestLevel; i++) {
             if(hasTokenIdBeatenLevel(tokenId, i)) {
-                scoreByTokenId += levelValues[i];
+                scoreByTokenId[tokenId] += levelValues[i];
             }
         }
     }
@@ -99,7 +100,7 @@ contract LevelingNFT is ERC721, Ownable {
         return uint(keccak256(abi.encodePacked(tokenId, owner)));
     }
 
-    function generateSVG(uint256 tokenId) internal pure returns (bytes memory svg) {
+    function generateSVG(uint256 tokenId) internal view returns (bytes memory svg) {
         svg = abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">',
             scoreByTokenId[tokenId],
