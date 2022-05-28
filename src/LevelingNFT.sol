@@ -4,13 +4,13 @@ import "./ILevelChecker.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
-
 contract LevelingNFT is ERC721, Ownable {
     uint latestLevel;
     mapping (uint => ILevelChecker) public levels;
     mapping (uint => uint) public levelValues;
     
-    mapping (uint256 => uint) public lastLevelBeatenByTokenId;
+    // Keeps track of the levels beaten by a given tokenId, while owned by a specific address.
+    mapping (uint256 => mapping (uint => bool)) public levelsBeatenByTokenKey;
     mapping (uint256 => uint) public scoreByTokenId;
 
     constructor() ERC721("LevelNFT", "LNFT") public {
@@ -22,9 +22,12 @@ contract LevelingNFT is ERC721, Ownable {
         levelValues[latestLevel] = levelValue;
         latestLevel++;
     }
-    
 
-    //TODO: Require that you beat the level before it?
+    function hasTokenIdBeatenLevel(uint256 tokenId, uint level) public pure returns(bool) {
+        uint key = getKey(tokenId, ownerOf[tokenId]);
+        return levelsBeatenByTokenKey(key);
+    }
+    
     function beatLevel(uint level, uint256 tokenId, bytes memory userData) public returns(bool) {
         // Only the owner can call the function to beat the level.
         require(ownerOf[tokenId] == msg.sender);
@@ -33,11 +36,12 @@ contract LevelingNFT is ERC721, Ownable {
 
         if (_level.isCompleted(msg.sender, userData)) {
             
-            // Make sure this user is on this level, and has not aleady beaten it.
-            require(lastLevelBeatenByTokenId[tokenId] == (level - 1));
+            // Make sure this user has not already beaten this level with this tokenId;
+            uint key = getKey(tokenId, msg.sender);
+            require(!levelsBeatenByTokenKey[key][level]);
             
             // Mark this level as completed by this token ID.
-            lastLevelBeatenByTokenId[tokenId] = level;
+            levelsBeatenByTokenKey[key][level] = true;
             
             // Increase this token's score.
             scoreByTokenId[tokenId] += levelValues[level];
@@ -73,13 +77,27 @@ contract LevelingNFT is ERC721, Ownable {
 
         ownerOf[id] = to;
 
-        // Before transferring, reset score and levels beaten.
-        scoreByTokenId[id] = 0;
-        lastLevelBeatenByTokenId[id] = 0;
+        // When transferring, reset score to the new owner's previous (gas expensive but whatever).
+        // Don't need to reset levels because it's also keyed by the owner address.
+        resumePreviousHighScore(id);
 
         emit Transfer(from, to, id);
     }
 
+    // Resets a token's score based on its new owner, and their prior progress.
+    // Mapping will still hold all their previous progress bc it's keyed by tokenId + address.
+    function resumePreviousHighScore(uint256 tokenId) internal {
+        scoreByTokenId[tokenId] = 0;
+        for (uint i = 0; i <= latestLevel; i++) {
+            if(hasTokenIdBeatenLevel(tokenId, i)) {
+                scoreByTokenId += levelValues[i];
+            }
+        }
+    }
+
+    function getKey(uint256 tokenId, address owner) internal pure returns(uint) {
+        return uint(keccak256(abi.encodePacked(tokenId, owner)));
+    }
 
     function generateSVG(uint256 tokenId) internal pure returns (bytes memory svg) {
         svg = abi.encodePacked(
@@ -110,7 +128,4 @@ contract LevelingNFT is ERC721, Ownable {
                 )
             );
     }
-
-
-
 }
