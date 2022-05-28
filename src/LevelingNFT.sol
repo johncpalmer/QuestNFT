@@ -7,11 +7,11 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract LevelingNFT is ERC721, Ownable {
     uint latestLevel;
-    mapping (uint => ILevelChecker) levels;
-    mapping (uint => uint) levelValues;
+    mapping (uint => ILevelChecker) public levels;
+    mapping (uint => uint) public levelValues;
     
-    mapping (uint256 => uint) lastLevelBeatenByTokenId;
-    mapping (uint256 => uint) scoreByTokenId;
+    mapping (uint256 => uint) public lastLevelBeatenByTokenId;
+    mapping (uint256 => uint) public scoreByTokenId;
 
     constructor() ERC721("LevelNFT", "LNFT") public {
         latestLevel = 1;
@@ -33,11 +33,11 @@ contract LevelingNFT is ERC721, Ownable {
 
         if (_level.isCompleted(msg.sender, userData)) {
             
-            // Make sure this user has not beaten this level already.
-            require(!lastLevelBeatenByTokenId[tokenId] == (level - 1));
+            // Make sure this user is on this level, and has not aleady beaten it.
+            require(lastLevelBeatenByTokenId[tokenId] == (level - 1));
             
             // Mark this level as completed by this token ID.
-            levelsBeatenByTokenId[tokenId][level] = true;
+            lastLevelBeatenByTokenId[tokenId] = level;
             
             // Increase this token's score.
             scoreByTokenId[tokenId] += levelValues[level];
@@ -73,25 +73,44 @@ contract LevelingNFT is ERC721, Ownable {
 
         ownerOf[id] = to;
 
-        // Before transferring, reset levels beaten and score.
-
-
-        // Tried to do this
-        delete levelsBeatenByTokenId[id];
-        
-        // Doing this instead
-        for (uint i = 0; i <= latestLevel; i++) {
-            levelsBeatenByTokenId[id][i] = false;
-        }
-
-
+        // Before transferring, reset score and levels beaten.
         scoreByTokenId[id] = 0;
+        lastLevelBeatenByTokenId[id] = 0;
 
         emit Transfer(from, to, id);
     }
 
-    function tokenURI(uint256 tokenId) public view override returns (string memory) {
 
+    function generateSVG(uint256 tokenId) internal pure returns (bytes memory svg) {
+        svg = abi.encodePacked(
+            '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">',
+            scoreByTokenId[tokenId],
+            '</text></svg>'
+        );
     }
+
+    function tokenURI(uint256 tokenId) public view override returns (string memory) {
+        return
+            string(
+                abi.encodePacked(
+                    'data:application/json;base64,',
+                    Base64.encode(
+                        bytes(
+                            abi.encodePacked(
+                                '{"name":"LevelNFT",',
+                                '"image":"data:image/svg+xml;base64,',
+                                Base64.encode(bytes(generateSVG(tokenId))),
+                                '", "description": "NFT that can beat levels.",',
+                                '"score": "',
+                                scoreByTokenId[tokenId],
+                                '"}'
+                            )
+                        )
+                    )
+                )
+            );
+    }
+
+
 
 }
