@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
+
 import "./ILevelChecker.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
@@ -7,45 +8,45 @@ import "base64/base64.sol";
 
 contract LevelNFT is ERC721, Ownable {
     // Level numbers auto-increment as they are added by the contract owner.
-    uint latestLevel;
+    uint256 public latestLevel;
 
     // Mapping from level numbers to addresses of their implementations.
-    mapping (uint => ILevelChecker) public levels;
+    mapping (uint256 => ILevelChecker) public levels;
 
     // Mapping from level number to how many points it's worth to complete it.
-    mapping (uint => uint) public levelValues;
+    mapping (uint256 => uint256) public levelValues;
     
     // Keeps track of the levels beaten by a given tokenId, while owned by a specific address.
     // This allows a previous owner of a token ID to resume if they get the token back.
-    mapping (uint256 => mapping (uint => bool)) public levelsBeatenByTokenKey;
+    mapping (bytes32 => mapping (uint256 => bool)) public levelsBeatenByTokenKey;
 
     // The current score of each token ID, based on the current owner and how many levels they've beaten with it.
-    mapping (uint256 => uint) public scoreByTokenId;
+    mapping (uint256 => uint256) public scoreByTokenId;
 
-    constructor() ERC721("LevelNFT", "LNFT") public {
+    constructor() ERC721("LevelNFT", "LNFT") {
         latestLevel = 1;
     }
 
     // Generate a unique key based on tokenId + owner address.
-    function getKey(uint256 tokenId, address owner) internal pure returns(uint) {
-        return uint(keccak256(abi.encodePacked(tokenId, owner)));
+    function getKey(uint256 tokenId, address owner) internal pure returns(bytes32) {
+        return keccak256(abi.encodePacked(tokenId, owner));
     }
 
     // Allows the owner of the contract to add new levels.
-    function addLevel(address levelAddress, uint levelValue) public onlyOwner {
+    function addLevel(address levelAddress, uint256 levelValue) public onlyOwner {
         levels[latestLevel] = ILevelChecker(levelAddress);
         levelValues[latestLevel] = levelValue;
         latestLevel++;
     }
 
     // Helper function to check if this token ID has previously beaten a level.
-    function hasTokenIdBeatenLevel(uint256 tokenId, uint level) public view returns(bool) {
-        uint key = getKey(tokenId, ownerOf[tokenId]);
+    function hasTokenIdBeatenLevel(uint256 tokenId, uint256 level) public view returns(bool) {
+        bytes32 key = getKey(tokenId, ownerOf[tokenId]);
         return levelsBeatenByTokenKey[key][level];
     }
     
     // Function to beat a level. If successful, adds to this token's score and tracks as beaten by this owner + tokenID.
-    function beatLevel(uint level, uint256 tokenId, bytes memory userData) public returns(bool) {
+    function beatLevel(uint256 level, uint256 tokenId, bytes memory userData) public returns(bool) {
         // Only the owner can call the function to beat the level.
         require(ownerOf[tokenId] == msg.sender);
 
@@ -57,7 +58,7 @@ contract LevelNFT is ERC721, Ownable {
             require(!hasTokenIdBeatenLevel(tokenId, level));
             
             // Mark this level as completed by this token ID.
-            uint key = getKey(tokenId, msg.sender);
+            bytes32 key = getKey(tokenId, msg.sender);
             levelsBeatenByTokenKey[key][level] = true;
             
             // Increase this token's score.
@@ -105,8 +106,8 @@ contract LevelNFT is ERC721, Ownable {
     // Mapping will still hold all their previous progress bc it's keyed by tokenId + address.
     function resumePreviousHighScore(uint256 tokenId) internal {
         scoreByTokenId[tokenId] = 0;
-        for (uint i = 0; i <= latestLevel; i++) {
-            if(hasTokenIdBeatenLevel(tokenId, i)) {
+        for (uint256 i = 0; i <= latestLevel; i++) {
+            if (hasTokenIdBeatenLevel(tokenId, i)) {
                 scoreByTokenId[tokenId] += levelValues[i];
             }
         }
