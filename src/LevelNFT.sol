@@ -40,7 +40,9 @@ contract LevelNFT is ERC721, Ownable {
     function addLevel(address levelAddress, uint256 levelValue) public onlyOwner {
         levels[latestLevel] = ILevelChecker(levelAddress);
         levelValues[latestLevel] = levelValue;
-        latestLevel++;
+        unchecked {
+            ++latestLevel;
+        }
     }
 
     // Helper function to check if this token ID has previously beaten a level.
