@@ -52,7 +52,7 @@ contract LevelNFT is ERC721, Ownable {
     }
     
     // Function to beat a level. If successful, adds to this token's score and tracks as beaten by this owner + tokenID.
-    function beatLevel(uint256 level, uint256 tokenId, bytes memory userData) public returns(bool) {
+    function beatLevel(uint256 level, uint256 tokenId, bytes calldata userData) external returns(bool) {
         // Only the owner can call the function to beat the level.
         require(ownerOf[tokenId] == msg.sender);
 
