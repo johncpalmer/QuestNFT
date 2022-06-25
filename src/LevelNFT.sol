@@ -6,25 +6,25 @@ import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "base64/base64.sol";
 
-contract LevelNFT is ERC721, Ownable {
+contract QuestNFT is ERC721, Ownable {
     // Level numbers auto-increment as they are added by the contract owner.
-    uint256 public latestLevel;
+    uint256 public latestQuest;
 
-    // Mapping from level numbers to addresses of their implementations.
-    mapping (uint256 => ILevelChecker) public levels;
+    // Mapping from quest numbers to addresses of their implementations.
+    mapping (uint256 => IQuest) public quests;
 
-    // Mapping from level number to how many points it's worth to complete it.
-    mapping (uint256 => uint256) public levelValues;
+    // Mapping from quest number to how many points it's worth to complete it.
+    mapping (uint256 => uint256) public questValues;
     
-    // Keeps track of the levels beaten by a given tokenId, while owned by a specific address.
+    // Keeps track of the quests completed by a given tokenId, while owned by a specific address.
     // This allows a previous owner of a token ID to resume if they get the token back.
-    mapping (bytes32 => mapping (uint256 => bool)) public levelsBeatenByTokenKey;
+    mapping (bytes32 => mapping (uint256 => bool)) public questsBeatenByTokenKey;
 
-    // The current score of each key, how many levels a token ID and owner pair has beaten.
-    mapping (bytes32 => uint256) public scoreByKey;
+    // The current XP of each key, how many quests a token ID and owner pair has beaten.
+    mapping (bytes32 => uint256) public xpByKey;
 
-    constructor() ERC721("LevelNFT", "LNFT") {
-        latestLevel = 1;
+    constructor() ERC721("QuestNFT", "QNFT") {
+        latestQuest = 1;
     }
 
     // Generate a unique key based on tokenId + owner address.
@@ -32,8 +32,8 @@ contract LevelNFT is ERC721, Ownable {
         return keccak256(abi.encodePacked(tokenId, owner));
     }
 
-    function getScore(uint256 tokenId) internal view returns (uint256) {
-        return scoreByKey[getKey(tokenId, ownerOf[tokenId])];
+    function getXp(uint256 tokenId) internal view returns (uint256) {
+        return xpByKey[getKey(tokenId, ownerOf[tokenId])];
     }
 
     // Allows the owner of the contract to add new levels.
@@ -51,7 +51,7 @@ contract LevelNFT is ERC721, Ownable {
         return levelsBeatenByTokenKey[key][level];
     }
     
-    // Function to beat a level. If successful, adds to this token's score and tracks as beaten by this owner + tokenID.
+    // Function to beat a level. If successful, adds to this token's xp and tracks as beaten by this owner + tokenID.
     function beatLevel(uint256 level, uint256 tokenId, bytes calldata userData) external returns(bool) {
         // Only the owner can call the function to beat the level.
         require(ownerOf[tokenId] == msg.sender);
@@ -67,8 +67,8 @@ contract LevelNFT is ERC721, Ownable {
             bytes32 key = getKey(tokenId, msg.sender);
             levelsBeatenByTokenKey[key][level] = true;
             
-            // Increase this token's score.
-            scoreByKey[getKey(tokenId, ownerOf[tokenId])] += levelValues[level];
+            // Increase this token's xp.
+            xpByKey[getKey(tokenId, ownerOf[tokenId])] += levelValues[level];
             return true;
         }
         return false;
@@ -77,7 +77,7 @@ contract LevelNFT is ERC721, Ownable {
     function generateSVG(uint256 tokenId) internal view returns (bytes memory svg) {
         svg = abi.encodePacked(
             '<svg xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMinYMin meet" viewBox="0 0 350 350"><style>.base { fill: white; font-family: serif; font-size: 14px; }</style><rect width="100%" height="100%" fill="black" /><text x="10" y="20" class="base">"',
-            scoreByKey[getKey(tokenId, ownerOf[tokenId])],
+            xpByKey[getKey(tokenId, ownerOf[tokenId])],
             '"</text></svg>'
         );
     }
@@ -94,8 +94,8 @@ contract LevelNFT is ERC721, Ownable {
                                 '"image":"data:image/svg+xml;base64,',
                                 Base64.encode(bytes(generateSVG(tokenId))),
                                 '", "description": "NFT that can beat levels.",',
-                                '"score": "',
-                                scoreByKey[getKey(tokenId, ownerOf[tokenId])],
+                                '"xp": "',
+                                xpByKey[getKey(tokenId, ownerOf[tokenId])],
                                 '"}'
                             )
                         )
