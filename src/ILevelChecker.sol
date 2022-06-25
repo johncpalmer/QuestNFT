@@ -8,6 +8,6 @@ interface IQueset {
     function isCompleted(
         uint256 tokenId,
         // Optional arbitrary data the user can pass in to verify a level was completed.
-        bytes memory userData
-    ) external view returns (bool);
+        bytes calldata userData
+    ) external returns (bool);
 }
