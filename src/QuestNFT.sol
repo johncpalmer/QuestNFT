@@ -13,7 +13,10 @@ contract QuestNFT is ERC721, Ownable {
     // Mapping from quest numbers to addresses of their implementations.
     mapping (uint256 => IQuest) public quests;
 
-    // Mapping from quest number to how many points it's worth to complete it.
+    // Mapping from address to quest number.
+    mapping (IQuest => uint256) public questIds;
+
+    // Mapping from quest number to how much XP it's worth to complete it.
     mapping (uint256 => uint256) public questValues;
     
     // Keeps track of the quests completed by a given tokenId, while owned by a specific address.
@@ -49,6 +52,12 @@ contract QuestNFT is ERC721, Ownable {
     function hasTokenIdBeatenQuest(uint256 tokenId, uint256 quest) public view returns(bool) {
         bytes32 key = getKey(tokenId, ownerOf[tokenId]);
         return questsBeatenByTokenKey[key][quest];
+    }
+
+    // Function to change the score of a given tokenId. Only called by quests.
+    function changeScore(uint256 tokenId, uint256 delta) onlyQuests {
+        bytes32 key = getKey(tokenId, ownerOf[tokenId]);
+        xpByKey[key] += delta;
     }
     
     // Function to beat a quest. If successful, adds to this token's xp and tracks as beaten by this owner + tokenID.
@@ -103,4 +112,9 @@ contract QuestNFT is ERC721, Ownable {
                 )
             );
     }
+
+    modifier onlyQuests {
+      require(questIds[msg.sender] > 0);
+      _;
+   }
 }
