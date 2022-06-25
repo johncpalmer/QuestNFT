@@ -1,16 +1,15 @@
-# LevelNFT
-NFTs that can beat levels and earn score. On-chain save states.
+# QuestNFT
+NFTs that can beat quests and earn XP. On-chain save states.
 
-### Level NFTs
-Each LevelNFT keeps track of its current score and which levels it has beaten. Beating levels adds to score.
+### Quest NFTs
+Each QuestNFT keeps track of its current XP and which quests it has beaten. Beating quests earns XP.
 
-Scored is saved for a given pair of token ID + owner.
+XP is saved based on a given pair of token ID + owner. This allows transferring of the NFTs in a way where
+a new owner has 0 XP, but previous owners can recover their XP if they gain the same NFT back in the future.
 
-When a LevelNFT is transferred, the token's score changes based on its new owner. However, if an owner regains possession of the same token ID they were previously using, they resume from their previou score + levels beaten.
-
-### Adding Levels
-- The owner of the contract can add new levels
-- Levels implement a function to tell if a given address + tokenId have beaten the level
-- Each level has its own score
+### Adding Quests
+- The owner of the QuestNFT contract can add new quests
+- Quests implement a function that allows an NFT owner to beat the quest
+- Each quest is worth a specific amount of XP
 
 
