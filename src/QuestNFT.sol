@@ -11,10 +11,10 @@ contract QuestNFT is ERC721, Ownable {
     uint256 public latestQuest;
 
     // Mapping from quest numbers to addresses of their implementations.
-    mapping (uint256 => IQuest) public quests;
+    mapping (uint256 => address) public quests;
 
     // Mapping from address to quest number.
-    mapping (IQuest => uint256) public questIds;
+    mapping (address => uint256) public questIds;
 
     // Mapping from quest number to how much XP it's worth to complete it.
     mapping (uint256 => uint256) public questValues;
@@ -42,6 +42,7 @@ contract QuestNFT is ERC721, Ownable {
     // Allows the owner of the contract to add new quest.
     function addQuest(address questAddress, uint256 questValue) public onlyOwner {
         quests[latestQuest] = IQuest(questAddress);
+        questIds[questAddress] = latestQuest;
         questValues[latestQuest] = questValue;
         unchecked {
             ++latestQuest;
