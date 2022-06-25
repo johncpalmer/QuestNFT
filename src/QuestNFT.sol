@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "./ILevelChecker.sol";
+import "./IQuest.sol";
 import "solmate/tokens/ERC721.sol";
 import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "base64/base64.sol";
