@@ -7,7 +7,7 @@ import "openzeppelin-contracts/contracts/access/Ownable.sol";
 import "base64/base64.sol";
 
 contract QuestNFT is ERC721, Ownable {
-    // Level numbers auto-increment as they are added by the contract owner.
+    // Quest numbers auto-increment as they are added by the contract owner.
     uint256 public latestQuest;
 
     // Mapping from quest numbers to addresses of their implementations.
@@ -36,39 +36,39 @@ contract QuestNFT is ERC721, Ownable {
         return xpByKey[getKey(tokenId, ownerOf[tokenId])];
     }
 
-    // Allows the owner of the contract to add new levels.
-    function addLevel(address levelAddress, uint256 levelValue) public onlyOwner {
-        levels[latestLevel] = ILevelChecker(levelAddress);
-        levelValues[latestLevel] = levelValue;
+    // Allows the owner of the contract to add new quest.
+    function addQuest(address questAddress, uint256 questValue) public onlyOwner {
+        quests[latestQuest] = IQuest(questAddress);
+        questValues[latestQuest] = questValue;
         unchecked {
-            ++latestLevel;
+            ++latestQuest;
         }
     }
 
-    // Helper function to check if this token ID has previously beaten a level.
-    function hasTokenIdBeatenLevel(uint256 tokenId, uint256 level) public view returns(bool) {
+    // Helper function to check if this token ID has previously beaten a quest.
+    function hasTokenIdBeatenQuest(uint256 tokenId, uint256 quest) public view returns(bool) {
         bytes32 key = getKey(tokenId, ownerOf[tokenId]);
-        return levelsBeatenByTokenKey[key][level];
+        return questsBeatenByTokenKey[key][quest];
     }
     
-    // Function to beat a level. If successful, adds to this token's xp and tracks as beaten by this owner + tokenID.
-    function beatLevel(uint256 level, uint256 tokenId, bytes calldata userData) external returns(bool) {
-        // Only the owner can call the function to beat the level.
+    // Function to beat a quest. If successful, adds to this token's xp and tracks as beaten by this owner + tokenID.
+    function beatQuest(uint256 quest, uint256 tokenId, bytes calldata userData) external returns(bool) {
+        // Only the owner can call the function to beat the quest.
         require(ownerOf[tokenId] == msg.sender);
 
-        ILevelChecker _level = ILevelChecker(levels[level]);
+        IQuest _quest = IQuest(quests[quest]);
 
-        if (_level.isCompleted(msg.sender, userData)) {
+        if (_quest.isCompleted(msg.sender, userData)) {
             
-            // Make sure this user has not already beaten this level with this tokenId;
-            require(!hasTokenIdBeatenLevel(tokenId, level));
+            // Make sure this user has not already beaten this quest with this tokenId;
+            require(!hasTokenIdBeatenQuest(tokenId, quest));
             
-            // Mark this level as completed by this token ID.
+            // Mark this quest as completed by this token ID.
             bytes32 key = getKey(tokenId, msg.sender);
-            levelsBeatenByTokenKey[key][level] = true;
+            questsBeatenByTokenKey[key][quest] = true;
             
             // Increase this token's xp.
-            xpByKey[getKey(tokenId, ownerOf[tokenId])] += levelValues[level];
+            xpByKey[getKey(tokenId, ownerOf[tokenId])] += questValues[quest];
             return true;
         }
         return false;
@@ -90,10 +90,10 @@ contract QuestNFT is ERC721, Ownable {
                     Base64.encode(
                         bytes(
                             abi.encodePacked(
-                                '{"name":"LevelNFT",',
+                                '{"name":"QuestNFT",',
                                 '"image":"data:image/svg+xml;base64,',
                                 Base64.encode(bytes(generateSVG(tokenId))),
-                                '", "description": "NFT that can beat levels.",',
+                                '", "description": "NFT that can beat quests and earn XP.",',
                                 '"xp": "',
                                 xpByKey[getKey(tokenId, ownerOf[tokenId])],
                                 '"}'
